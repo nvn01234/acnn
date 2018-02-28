@@ -4,3 +4,4 @@ embeddings.txt
 __pycache__/
 *.pyc
 run/
+.idea
