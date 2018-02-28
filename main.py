@@ -19,9 +19,9 @@ config = config.FLAGS
 def run_epoch(session, model, batch_iter, is_training=True, verbose=True):
     start_time = time.time()
     acc_count = 0
-    f1_count = 0
     step = 0  # len(all_data)
-
+    y_true = []
+    y_pred = []
     for batch in batch_iter:
         step += 1
         batch = (x for x in zip(*batch))
@@ -32,8 +32,9 @@ def run_epoch(session, model, batch_iter, is_training=True, verbose=True):
         in_x, in_e1, in_e2, in_dist1, in_dist2, in_y = model.inputs
         feed_dict = {in_x: sents, in_e1: e1, in_e2: e2, in_dist1: dist1,
                      in_dist2: dist2, in_y: relations}
+        y_true += list(relations)
         if is_training:
-            _, _, acc, loss, y_pred = session.run([model.train_op, model.reg_op, model.acc, model.loss, model.predict], feed_dict=feed_dict)
+            _, _, acc, loss, pred = session.run([model.train_op, model.reg_op, model.acc, model.loss, model.predict], feed_dict=feed_dict)
             acc_count += acc
             if verbose and step % 10 == 0:
                 logging.info("  step: %d acc: %.2f%% loss: %.2f time: %.2f" % (
@@ -43,11 +44,11 @@ def run_epoch(session, model, batch_iter, is_training=True, verbose=True):
                     time.time() - start_time
                 ))
         else:
-            acc, y_pred = session.run([model.acc, model.predict], feed_dict=feed_dict)
+            acc, pred = session.run([model.acc, model.predict], feed_dict=feed_dict)
             acc_count += acc
-        f1 = f1_score(y_true=relations, y_pred=y_pred, average="macro")
-        f1_count += f1
-    return acc_count / (step * config.batch_size), f1_count / (step * config.batch_size)
+        y_pred += list(pred)
+    f1 = f1_score(y_true=y_true, y_pred=y_pred, average="macro")
+    return acc_count / (step * config.batch_size), f1
 
 
 def init():
